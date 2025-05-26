@@ -63,14 +63,14 @@ export default function Transactions() {
   const limit = 5;
 
   useEffect(() => {
-    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users`)
+    axios.get("/api/users")
       .then((res) => setUsers(res.data))
       .catch((err) => console.error("Failed to load users:", err));
   }, []);
 
   const fetchTransactions = useCallback(async () => {
     try {
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions`, {
+      const res = await axios.get("/api/transactions", {
         params: {
           category: searchCategory,
           page: currentPage,
@@ -89,7 +89,7 @@ export default function Transactions() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions/stats`);
+      const res = await axios.get("/api/transactions/stats");
       setStats(res.data);
     } catch (err) {
       console.error("Error loading stats:", err);
@@ -106,12 +106,12 @@ export default function Transactions() {
       console.log("🔄 Syncing action:", action);
 
       if (action.type === "ADD") {
-        await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions`, action.payload);
+        await axios.post("/api/transactions", action.payload);
       } else if (action.type === "UPDATE") {
         const id = action.payload.id;
         if (typeof id === "number" && id < 100000) {
           console.log(`🔧 PUT /api/transactions/${id}`, action.payload);
-          await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions/${id}`, action.payload);
+          await axios.put(`/api/transactions/${id}`, action.payload);
         } else {
           console.warn("⚠️ Skipping invalid update for fake ID:", id);
         }
@@ -119,7 +119,7 @@ export default function Transactions() {
         const id = action.payload.id;
         if (typeof id === "number" && id < 100000) {
           console.log(`🗑 DELETE /api/transactions/${id}`);
-          await axios.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions/${id}`);
+          await axios.delete(`/api/transactions/${id}`);
         } else {
           console.warn("⚠️ Skipping invalid delete for fake ID:", id);
         }
@@ -163,7 +163,7 @@ export default function Transactions() {
   useEffect(() => {
     const pingServer = async () => {
       try {
-        await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/ping`);
+        await axios.get(`/ping`);
         setIsServerUp(true);
       } catch {
         setIsServerUp(false);
@@ -193,7 +193,7 @@ export default function Transactions() {
   };  
 
   useEffect(() => {
-    const socket = io(`${process.env.NEXT_PUBLIC_API_BASE_URL}`, { transports: ["websocket"] });
+    const socket = io("http://finance-backend-env.eba-b63bes3c.eu-north-1.elasticbeanstalk.com", { transports: ["websocket"] });
     socket.on("connect", () => console.log("✅ WebSocket connected with ID:", socket.id));
     socket.on("connect_error", (err) => console.error("❌ WebSocket connection error:", err.message));
     socket.onAny((event, ...args) => console.log(`📡 Event from server: ${event}`, args));
@@ -246,10 +246,10 @@ export default function Transactions() {
         setSuccessMessage("Transaction saved offline and will sync later.");
       } else {
         if (isEditing && formData.id !== null) {
-          await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions/${formData.id}`, payload);
+          await axios.put(`/api/transactions/${formData.id}`, payload);
           setSuccessMessage("Transaction updated!");
         } else {
-          await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions`, payload);
+          await axios.post(`/api/transactions`, payload);
           setSuccessMessage("Transaction added!");
         }
         setCurrentPage(1);
@@ -284,7 +284,7 @@ export default function Transactions() {
         setSuccessMessage("Delete action saved offline and will sync later.");
         return;
       }
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions/${id}`);
+      await axios.delete(`/api/transactions/${id}`);
       setCurrentPage(1);
       fetchTransactions();
       fetchStats();

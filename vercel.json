@@ -1,0 +1,6 @@
+{
+    "rewrites": [{
+        "source": "/api/:path*",
+        "destination": "http://finance-backend-env.eba-b63bes3c.eu-north-1.elasticbeanstalk.com/api/:path*"
+    }]
+}
