@@ -163,7 +163,7 @@ export default function Transactions() {
   useEffect(() => {
     const pingServer = async () => {
       try {
-        await axios.get(`/ping`);
+        await axios.get(`/api/ping`);
         setIsServerUp(true);
       } catch {
         setIsServerUp(false);
