@@ -63,14 +63,14 @@ export default function Transactions() {
   const limit = 5;
 
   useEffect(() => {
-    axios.get("${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users")
+    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users`)
       .then((res) => setUsers(res.data))
       .catch((err) => console.error("Failed to load users:", err));
   }, []);
 
   const fetchTransactions = useCallback(async () => {
     try {
-      const res = await axios.get("${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions", {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions`, {
         params: {
           category: searchCategory,
           page: currentPage,
@@ -89,7 +89,7 @@ export default function Transactions() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await axios.get("${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions/stats");
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions/stats`);
       setStats(res.data);
     } catch (err) {
       console.error("Error loading stats:", err);
@@ -106,7 +106,7 @@ export default function Transactions() {
       console.log("🔄 Syncing action:", action);
 
       if (action.type === "ADD") {
-        await axios.post("${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions", action.payload);
+        await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions`, action.payload);
       } else if (action.type === "UPDATE") {
         const id = action.payload.id;
         if (typeof id === "number" && id < 100000) {
@@ -163,7 +163,7 @@ export default function Transactions() {
   useEffect(() => {
     const pingServer = async () => {
       try {
-        await axios.get("${process.env.NEXT_PUBLIC_API_BASE_URL}/ping");
+        await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/ping`);
         setIsServerUp(true);
       } catch {
         setIsServerUp(false);
@@ -193,7 +193,7 @@ export default function Transactions() {
   };  
 
   useEffect(() => {
-    const socket = io("${process.env.NEXT_PUBLIC_API_BASE_URL}", { transports: ["websocket"] });
+    const socket = io(`${process.env.NEXT_PUBLIC_API_BASE_URL}`, { transports: ["websocket"] });
     socket.on("connect", () => console.log("✅ WebSocket connected with ID:", socket.id));
     socket.on("connect_error", (err) => console.error("❌ WebSocket connection error:", err.message));
     socket.onAny((event, ...args) => console.log(`📡 Event from server: ${event}`, args));
@@ -249,7 +249,7 @@ export default function Transactions() {
           await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions/${formData.id}`, payload);
           setSuccessMessage("Transaction updated!");
         } else {
-          await axios.post("${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions", payload);
+          await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions`, payload);
           setSuccessMessage("Transaction added!");
         }
         setCurrentPage(1);

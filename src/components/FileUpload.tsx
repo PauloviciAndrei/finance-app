@@ -15,7 +15,7 @@ export default function FileUpload() {
     formData.append('file', file);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/files/upload', formData, {
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/files/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -23,7 +23,7 @@ export default function FileUpload() {
       });
 
       console.log('✅ Upload success:', res.data);
-      setUploadedFileUrl(`http://localhost:5000/api/files/download/${res.data.filename}`);
+      setUploadedFileUrl(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/files/download/${res.data.filename}`);
     } catch (error) {
       console.error('❌ Upload failed:', error);
     }

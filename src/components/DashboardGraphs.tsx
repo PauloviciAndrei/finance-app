@@ -17,14 +17,14 @@ export default function DashboardGraphs() {
   const [selectedUserId, setSelectedUserId] = useState<number | "">("");
 
   useEffect(() => {
-    axios.get("${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users")
+    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users`)
       .then(res => setUsers(res.data))
       .catch(err => console.error("Failed to fetch users", err));
   }, []);
 
   useEffect(() => {
     const fetchData = () => {
-      axios.get("${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions?limit=1000")
+      axios.get('${process.env.NEXT_PUBLIC_API_BASE_URL}/api/transactions?limit=1000')
         .then((res) => setTransactions(res.data.data))
         .catch((err) => console.error("Failed to load transactions", err));
     };
