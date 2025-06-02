@@ -11,6 +11,9 @@ import { Transaction } from "./Transactions";
 
 const PIE_COLORS = ["#34d399", "#f87171"]; // green-400, red-400
 
+// ✅ Set base URL for axios
+axios.defaults.baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 export default function DashboardGraphs() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [users, setUsers] = useState<{ id: number; name: string }[]>([]);
