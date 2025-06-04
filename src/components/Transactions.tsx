@@ -7,6 +7,7 @@ import TransactionList from "./TransactionList";
 import { addToQueue, getQueue, clearQueue } from "../utils/offlineQueue";
 import { io } from "socket.io-client";
 
+axios.defaults.baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export interface Transaction {
   id: number;
@@ -75,9 +76,9 @@ export default function Transactions() {
           category: searchCategory,
           page: currentPage,
           limit: limit,
-          user_id: selectedUserId || undefined, // only pass if selected
+          user_id: selectedUserId || undefined,
         },
-      });      
+      });
       const sortedTransactions = [...res.data.data].sort((a, b) => b.id - a.id);
       setStaticTransactions(sortedTransactions);
       setTotalCount(res.data.total);
@@ -85,7 +86,7 @@ export default function Transactions() {
       console.error("Error loading:", err);
       setIsServerUp(false);
     }
-  }, [searchCategory, currentPage,selectedUserId]);
+  }, [searchCategory, currentPage, selectedUserId]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -97,44 +98,43 @@ export default function Transactions() {
     }
   }, []);
 
- const syncOfflineQueue = useCallback(async () => {
-  const queue = getQueue();
-  if (queue.length === 0) return;
+  const syncOfflineQueue = useCallback(async () => {
+    const queue = getQueue();
+    if (queue.length === 0) return;
 
-  try {
-    for (const action of queue) {
-      console.log("🔄 Syncing action:", action);
+    try {
+      for (const action of queue) {
+        console.log("🔄 Syncing action:", action);
 
-      if (action.type === "ADD") {
-        await axios.post("/api/transactions", action.payload);
-      } else if (action.type === "UPDATE") {
-        const id = action.payload.id;
-        if (typeof id === "number" && id < 100000) {
-          console.log(`🔧 PUT /api/transactions/${id}`, action.payload);
-          await axios.put(`/api/transactions/${id}`, action.payload);
-        } else {
-          console.warn("⚠️ Skipping invalid update for fake ID:", id);
-        }
-      } else if (action.type === "DELETE") {
-        const id = action.payload.id;
-        if (typeof id === "number" && id < 100000) {
-          console.log(`🗑 DELETE /api/transactions/${id}`);
-          await axios.delete(`/api/transactions/${id}`);
-        } else {
-          console.warn("⚠️ Skipping invalid delete for fake ID:", id);
+        if (action.type === "ADD") {
+          await axios.post("/api/transactions", action.payload);
+        } else if (action.type === "UPDATE") {
+          const id = action.payload.id;
+          if (typeof id === "number" && id < 100000) {
+            console.log(`🔧 PUT /api/transactions/${id}`, action.payload);
+            await axios.put(`/api/transactions/${id}`, action.payload);
+          } else {
+            console.warn("⚠️ Skipping invalid update for fake ID:", id);
+          }
+        } else if (action.type === "DELETE") {
+          const id = action.payload.id;
+          if (typeof id === "number" && id < 100000) {
+            console.log(`🗑 DELETE /api/transactions/${id}`);
+            await axios.delete(`/api/transactions/${id}`);
+          } else {
+            console.warn("⚠️ Skipping invalid delete for fake ID:", id);
+          }
         }
       }
+
+      clearQueue();
+      fetchTransactions();
+      fetchStats();
+      setSuccessMessage("Offline transactions synced successfully!");
+    } catch (error) {
+      console.error("❌ Error syncing offline queue:", error);
     }
-
-    clearQueue();
-    fetchTransactions();
-    fetchStats();
-    setSuccessMessage("Offline transactions synced successfully!");
-  } catch (error) {
-    console.error("❌ Error syncing offline queue:", error);
-  }
-}, [fetchTransactions, fetchStats]);
-
+  }, [fetchTransactions, fetchStats]);
 
   useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
   useEffect(() => { fetchStats(); }, [fetchStats]);
@@ -180,20 +180,19 @@ export default function Transactions() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-  
     let parsedValue: string | number = value;
-  
+
     if (name === "amount") {
       parsedValue = Number(value);
     } else if (name === "user_id") {
       parsedValue = value === "" ? "" : Number(value);
     }
-  
+
     setFormData({ ...formData, [name]: parsedValue });
-  };  
+  };
 
   useEffect(() => {
-    const socket = io("http://finance-backend-env.eba-b63bes3c.eu-north-1.elasticbeanstalk.com", { transports: ["websocket"] });
+    const socket = io("https://www.financeapi.online", { transports: ["websocket"] });
     socket.on("connect", () => console.log("✅ WebSocket connected with ID:", socket.id));
     socket.on("connect_error", (err) => console.error("❌ WebSocket connection error:", err.message));
     socket.onAny((event, ...args) => console.log(`📡 Event from server: ${event}`, args));
@@ -211,21 +210,21 @@ export default function Transactions() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     const newErrors: ValidationErrors = {};
     if (!formData.type) newErrors.type = "Type is required";
     if (!formData.amount) newErrors.amount = "Amount is required";
     if (!formData.category) newErrors.category = "Category is required";
     if (!formData.date) newErrors.date = "Date is required";
     if (!formData.user_id) newErrors.user_id = "User is required";
-  
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-  
+
     setErrors({});
-  
+
     const payload = {
       type: formData.type,
       amount: Number(formData.amount),
@@ -234,8 +233,6 @@ export default function Transactions() {
       user_id: formData.user_id !== "" ? Number(formData.user_id) : undefined,
     };
 
-    console.log("FormData before submit:", formData);
-  
     try {
       if (!isOnline || !isServerUp) {
         if (isEditing && formData.id !== null) {
@@ -256,7 +253,7 @@ export default function Transactions() {
         fetchTransactions();
         fetchStats();
       }
-  
+
       setFormData({ id: null, type: "", amount: "", category: "", date: "", user_id: "" });
       setIsEditing(false);
       setTimeout(() => setSuccessMessage(""), 3000);
@@ -264,7 +261,7 @@ export default function Transactions() {
       console.error("Error adding/updating transaction:", error);
     }
   };
-  
+
   const handleEdit = (txn: Transaction) => {
     setFormData({
       id: txn.id,
@@ -272,11 +269,11 @@ export default function Transactions() {
       amount: String(txn.amount),
       category: txn.category,
       date: txn.date,
-      user_id: txn.user_id ?? "", // ✅ FIX: include fallback to match FormData
+      user_id: txn.user_id ?? "",
     });
     setIsEditing(true);
   };
-  
+
   const handleDelete = async (id: number) => {
     try {
       if (!isOnline || !isServerUp) {
@@ -294,83 +291,75 @@ export default function Transactions() {
   };
 
   return (
-  <div className="max-w-5xl mx-auto p-6 bg-white shadow-lg rounded-lg">
-    {/* Offline/server messages */}
-    {!isOnline && (
-      <p className="text-center text-white bg-red-600 p-2 rounded mb-4">
-        🔌 You are offline. Changes will sync later.
-      </p>
-    )}
-    {isOnline && !isServerUp && (
-      <p className="text-center text-white bg-yellow-500 p-2 rounded mb-4">
-        ⚠️ Server unreachable. Offline mode.
-      </p>
-    )}
-    {successMessage && (
-      <p className="text-center text-green-600 p-2 rounded mb-4">{successMessage}</p>
-    )}
+    <div className="max-w-5xl mx-auto p-6 bg-white shadow-lg rounded-lg">
+      {!isOnline && (
+        <p className="text-center text-white bg-red-600 p-2 rounded mb-4">
+          🔌 You are offline. Changes will sync later.
+        </p>
+      )}
+      {isOnline && !isServerUp && (
+        <p className="text-center text-white bg-yellow-500 p-2 rounded mb-4">
+          ⚠️ Server unreachable. Offline mode.
+        </p>
+      )}
+      {successMessage && (
+        <p className="text-center text-green-600 p-2 rounded mb-4">{successMessage}</p>
+      )}
 
-    <h1 className="text-2xl font-bold mb-6 text-center">Transaction Manager</h1>
+      <h1 className="text-2xl font-bold mb-6 text-center">Transaction Manager</h1>
 
-    <div className="flex flex-col md:flex-row gap-8 items-start">
-  {/* Left: Transaction Form */}
-  <div className="md:w-1/2 w-full">
-    <TransactionForm
-      formData={formData}
-      isEditing={isEditing}
-      handleChange={handleChange}
-      handleSubmit={handleSubmit}
-      errors={errors}
-      users={users}
-    />
-  </div>
+      <div className="flex flex-col md:flex-row gap-8 items-start">
+        <div className="md:w-1/2 w-full">
+          <TransactionForm
+            formData={formData}
+            isEditing={isEditing}
+            handleChange={handleChange}
+            handleSubmit={handleSubmit}
+            errors={errors}
+            users={users}
+          />
+        </div>
 
-  {/* Right: Filter + List in full height */}
-  {/* Right: Filter + List */}
-<div className="md:w-1/2 w-full flex flex-col">
-  {/* Filter dropdown */}
-  <div className="mb-4">
-    <label htmlFor="userFilter" className="block text-sm font-medium text-gray-700 mb-1">
-      Filter by User
-    </label>
-    <select
-      id="userFilter"
-      value={selectedUserId}
-      onChange={(e) => {
-        setSelectedUserId(e.target.value === "" ? "" : Number(e.target.value));
-        setCurrentPage(1);
-      }}
-      className="p-2 border rounded w-full"
-    >
-      <option value="">All Users</option>
-      {users.map((user) => (
-        <option key={user.id} value={user.id}>
-          {user.name}
-        </option>
-      ))}
-    </select>
-  </div>
+        <div className="md:w-1/2 w-full flex flex-col">
+          <div className="mb-4">
+            <label htmlFor="userFilter" className="block text-sm font-medium text-gray-700 mb-1">
+              Filter by User
+            </label>
+            <select
+              id="userFilter"
+              value={selectedUserId}
+              onChange={(e) => {
+                setSelectedUserId(e.target.value === "" ? "" : Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="p-2 border rounded w-full"
+            >
+              <option value="">All Users</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-  {/* Transaction list - grow to fill space */}
-  <div className="flex-1 overflow-auto">
-    <TransactionList
-      transactions={staticTransactions}
-      searchCategory={searchCategory}
-      highestExpenseTxn={stats.highest}
-      lowestExpenseTxn={stats.lowest}
-      closestToAverageTxn={stats.closestToAverage}
-      handleEdit={handleEdit}
-      handleDelete={handleDelete}
-      currentPage={currentPage}
-      setCurrentPage={setCurrentPage}
-      totalCount={totalCount}
-      itemsPerPage={limit}
-    />
-  </div>
-</div>
-
-</div>
-  </div>
-);
-
+          <div className="flex-1 overflow-auto">
+            <TransactionList
+              transactions={staticTransactions}
+              searchCategory={searchCategory}
+              highestExpenseTxn={stats.highest}
+              lowestExpenseTxn={stats.lowest}
+              closestToAverageTxn={stats.closestToAverage}
+              handleEdit={handleEdit}
+              handleDelete={handleDelete}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              totalCount={totalCount}
+              itemsPerPage={limit}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
